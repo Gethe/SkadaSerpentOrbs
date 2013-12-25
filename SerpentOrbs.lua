@@ -49,7 +49,7 @@ local function log_heal(set, heal)
 			if heal.spellid == 124041 then --orb pickup
 				heal.spellname = "Gift of the Serpent (Pickup)"
 			elseif heal.spellid == 135920 then --orb explosion
-				heal.spellname = "Gift of the Serpent (Explode)"
+				heal.spellname = "Gift of the Serpent (Burst)"
 			end
 
 			local spell = player.orbhealingspells[heal.spellname]
@@ -85,8 +85,8 @@ local function log_cast(set, cast)
 	if player then
 		-- Add to player orb casts.
 		if cast.spellId == 135920 then -- Orb Explosion
-			player.orbExplode = player.orbExplode + 1
-			set.orbExplode = set.orbExplode + 1
+			player.orbburst = player.orbburst + 1
+			set.orbburst = set.orbburst + 1
 		end
 	end
 end
@@ -316,21 +316,21 @@ function modGotSWaste:Update(win, set)
 	local nr = 1
 
 	for i, player in ipairs(set.players) do
-		if player.orbExplode > 0 then
+		if player.orbburst > 0 then
 
 			local d = win.dataset[nr] or {}
 			win.dataset[nr] = d
-			d.value = player.orbExplode
+			d.value = player.orbburst
 			d.label = player.name
 			d.class = player.class
 			d.id = player.id
 			d.valuetext = Skada:FormatValueText(
-								string.format("%d", player.orbExplode), self.metadata.columns.Healing,
-								string.format("%d", player.orbhits), self.metadata.columns.HPS,
-								string.format("%02.1f%%", player.orbhits / player.orbExplode * 100), self.metadata.columns.Percent
+								string.format("%d", player.orbburst), self.metadata.columns.Healing,
+								string.format("%d", player.orbhealingspells["Gift of the Serpent (Burst)"].orbhits), self.metadata.columns.HPS,
+								string.format("%02.1f%%", player.orbhealingspells["Gift of the Serpent (Burst)"].orbhits / player.orbburst * 100), self.metadata.columns.Percent
 							)
-			if player.orbExplode > max then
-				max = player.orbExplode
+			if player.orbburst > max then
+				max = player.orbburst
 			end
 			nr = nr + 1
 		end
@@ -348,18 +348,14 @@ function modGotSWaste:OnDisable()
 end
 
 function modGotSWaste:AddPlayerAttributes(player)
-	if not player.orbExplode then
-		player.orbExplode = 0
-	end
+	player.orbburst = player.orbburst or 0
 end
 
 -- Called by Skada when a new set is created.
 function modGotSWaste:AddSetAttributes(set)
-	if not set.orbExplode then
-		set.orbExplode = 0
-	end
+	set.orbburst = set.orbburst or 0
 end
 
 function modGotSWaste:GetSetSummary(set)
-	return set.orbExplode
+	return set.orbburst
 end
