@@ -4,13 +4,22 @@ local NAME, SerpentOrbs = ...
 local Skada = Skada
 
 local modGotSHeal = Skada:NewModule(SerpentOrbs.L["GotS Healing"])
-local orbBreakdown = Skada:NewModule(SerpentOrbs.L["Orb Healing"])
+local GotSHealDetail = Skada:NewModule(SerpentOrbs.L["Healing Details"])
 local modGotSWaste = Skada:NewModule(SerpentOrbs.L["GotS Efficiency"])
 
 local function log_heal(set, heal)
 	-- Get the player from set.
 	local player = Skada:get_player(set, heal.playerid, heal.playername)
 	if player then
+		if heal.spellid == 124041 then -- Orb Pickup
+			heal.spellname = "Gift of the Serpent (Pickup)"
+			player.orbpickuphits = player.orbpickuphits + 1
+			set.orbpickuphits = set.orbpickuphits + 1
+		elseif heal.spellid == 135920 then -- Orb Burst
+			heal.spellname = "Gift of the Serpent (Burst)"
+			player.orbbursthits = player.orbbursthits + 1
+			set.orbbursthits = set.orbbursthits + 1
+		end
 		-- Subtract overhealing
 		local amount = math.max(0, heal.orbamount - heal.orboverhealing)
 		-- Add absorbed
@@ -20,13 +29,11 @@ local function log_heal(set, heal)
 		player.orbhealing = player.orbhealing + amount
 		player.orboverhealing = player.orboverhealing + heal.orboverhealing
 		player.orbhealingabsorbed = player.orbhealingabsorbed + heal.orbabsorbed
-		player.orbhits = player.orbhits + 1
 
 		-- Also add to set total damage.
 		set.orbhealing = set.orbhealing + amount
 		set.orboverhealing = set.orboverhealing + heal.orboverhealing
 		set.orbhealingabsorbed = set.orbhealingabsorbed + heal.orbabsorbed
-		set.orbhits = set.orbhits + 1
 
 		-- Add to recipient healing.
 		do
@@ -46,11 +53,6 @@ local function log_heal(set, heal)
 
 		-- Add to spell healing
 		do
-			if heal.spellid == 124041 then --orb pickup
-				heal.spellname = "Gift of the Serpent (Pickup)"
-			elseif heal.spellid == 135920 then --orb explosion
-				heal.spellname = "Gift of the Serpent (Burst)"
-			end
 
 			local spell = player.orbhealingspells[heal.spellname]
 
@@ -84,9 +86,9 @@ local function log_cast(set, cast)
 	local player = Skada:get_player(set, cast.playerid, cast.playername)
 	if player then
 		-- Add to player orb casts.
-		if cast.spellId == 135920 then -- Orb Explosion
-			player.orbburst = player.orbburst + 1
-			set.orbburst = set.orbburst + 1
+		if cast.spellid == 135920 then -- Orb Burst
+			player.orbburstcast = player.orbburstcast + 1
+			set.orbburstcast = set.orbburstcast + 1
 		end
 	end
 end
@@ -98,7 +100,7 @@ local function SpellHeal(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGU
 	-- Healing
 	local spellId, spellName, spellSchool, samount, soverhealing, absorbed, scritical = ...
 
-	if (spellId == 124041) or (spellId == 135920) then  -- orb pickup or explosion
+	if (spellId == 124041) or (spellId == 135920) then  -- Orb Pickup or Burst
 		heal.playername = dstName
 		heal.playerid = dstGUID
 		heal.srcName = srcName
@@ -121,7 +123,8 @@ local function SpellCast(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGU
 
 	-- Warlords: GotS summon spellId = 119031
 
-	if (spellId == 124041) or (spellId == 135920) then  -- orb pickup or explosion
+	if (spellId == 124041) or (spellId == 135920) then  -- Orb Pickup or Burst
+		print("spellId", spellId, "; srcName", srcName, "; dstName", dstName)
 		cast.dstName = dstName
 		cast.playerid = srcGUID
 		cast.playername = srcName
@@ -136,29 +139,8 @@ end
 
 
 
-local function getHPS(set, player)
-	local totaltime = Skada:PlayerActiveTime(set, player)
-
-	return player.orbhealing / math.max(1,totaltime)
-end
-
-local function getHPSByValue(set, player, healing)
-	local totaltime = Skada:PlayerActiveTime(set, player)
-
-	return healing / math.max(1,totaltime)
-end
-
-local function getRaidHPS(set)
-	if set.time > 0 then
-		return set.orbhealing / math.max(1, set.time)
-	else
-		local endtime = set.endtime or time()
-		return set.orbhealing / math.max(1, endtime - set.starttime)
-	end
-end
-
 local function spell_tooltip(win, id, label, tooltip)
-	local player = Skada:find_player(win:get_selected_set(), orbBreakdown.playerid)
+	local player = Skada:find_player(win:get_selected_set(), GotSHealDetail.playerid)
 	if player then
 		local spell = player.orbhealingspells[label]
 		if spell then
@@ -181,13 +163,12 @@ local function spell_tooltip(win, id, label, tooltip)
 	end
 end
 -- Number of full orbs vs explosions
-function orbBreakdown:Enter(win, id, label)
-	orbBreakdown.playerid = id
-	orbBreakdown.title = SerpentOrbs.L["Orb Healing for"].." "..label
+function GotSHealDetail:Enter(win, id, label)
+	GotSHealDetail.playerid = id
+	GotSHealDetail.title = SerpentOrbs.L["Orb Healing for"].." "..label
 end
 
-
-function orbBreakdown:Update(win, set)
+function GotSHealDetail:Update(win, set)
 	-- View spells for this player.
 
 	local player = Skada:find_player(set, self.playerid)
@@ -202,10 +183,7 @@ function orbBreakdown:Update(win, set)
 			d.id = spell.id
 			d.label = spell.name
 			d.value = spell.orbhealing
-			d.valuetext = Skada:FormatValueText(
-											Skada:FormatNumber(spell.orbhealing), self.metadata.columns.Healing,
-											string.format("%d", spell.orbhits), self.metadata.columns.Percent
-										)
+			d.valuetext = ("%s / %d"):format(Skada:FormatNumber(spell.orbhealing), spell.orbhits)
 			local _, _, icon = GetSpellInfo(spell.id)
 			d.icon = icon
 			d.spellid = spell.id
@@ -222,6 +200,8 @@ function orbBreakdown:Update(win, set)
 	win.metadata.maxvalue = max
 end
 
+
+
 function modGotSHeal:Update(win, set)
 	local nr = 1
 	local max = 0
@@ -236,10 +216,7 @@ function modGotSHeal:Update(win, set)
 			d.label = player.name
 			d.value = player.orbhealing
 
-			d.valuetext = Skada:FormatValueText(
-											Skada:FormatNumber(player.orbhealing), self.metadata.columns.Healing,
-											string.format("%d", player.orbhits), self.metadata.columns.Percent
-										)
+			d.valuetext = ("%s / %d"):format(Skada:FormatNumber(player.orbhealing), player.orbpickuphits + player.orbbursthits)
 			d.class = player.class
 
 			if player.orbhealing > max then
@@ -254,13 +231,10 @@ function modGotSHeal:Update(win, set)
 end
 
 function modGotSHeal:OnEnable()
-	modGotSHeal.metadata		= {showspots = true, click1 = orbBreakdown, columns = {Healing = true, Percent = true}}
-	orbBreakdown.metadata	= {tooltip = spell_tooltip, columns = {Healing = true, Percent = true}}
-	modGotSWaste.metadata	= {tooltip = spell_tooltip, columns = {Healing = true, HPS = true, Percent = true}}
+	modGotSHeal.metadata = {showspots = true, click1 = GotSHealDetail}
+	GotSHealDetail.metadata	= {tooltip = spell_tooltip}
 
-	-- handlers for Healing spells
 	Skada:RegisterForCL(SpellHeal, 'SPELL_HEAL', {dst_is_interesting = true})
-	Skada:RegisterForCL(SpellCast, 'SPELL_CAST_SUCCESS', {src_is_interesting = true})
 
 	Skada:AddMode(self)
 end
@@ -270,19 +244,11 @@ function modGotSHeal:OnDisable()
 end
 
 function modGotSHeal:AddToTooltip(set, tooltip)
-	local endtime = set.endtime
-	if not endtime then
-		endtime = time()
-	end
-	local raidhps = set.orbhealing / (endtime - set.starttime + 1)
- 	GameTooltip:AddDoubleLine(L["HPS"], ("%02.1f"):format(raidhps), 1,1,1)
+ 	GameTooltip:AddDoubleLine(L["Healing"], Skada:FormatNumber(set.orbhealing), 1,1,1)
 end
 
 function modGotSHeal:GetSetSummary(set)
-	return Skada:FormatValueText(
-		Skada:FormatNumber(set.orbhealing), self.metadata.columns.Healing,
-		string.format("%d", set.orbhits), self.metadata.columns.Percent
-	)
+	return ("%s / %d"):format(Skada:FormatNumber(set.orbhealing), set.orbpickuphits + set.orbbursthits)
 end
 
 -- Called by Skada when a new player is added to a set.
@@ -292,7 +258,8 @@ function modGotSHeal:AddPlayerAttributes(player)
 	player.orbhealingspells = player.orbhealingspells or {}		-- Healing spells
 	player.orboverhealing = player.orboverhealing or 0			-- Overheal total
 	player.orbhealingabsorbed = player.orbhealingabsorbed or 0	-- Absorbed total
-	player.orbhits = player.orbhits or 0 						-- Total Hits
+	player.orbpickuphits = player.orbpickuphits or 0 			-- Orb Pickups
+	player.orbbursthits = player.orbbursthits or 0 				-- Orb Bursts
 
 	-- update any pre-existing orbhealingspells for new properties
 	local _, orbheal, orbhealed
@@ -306,31 +273,61 @@ function modGotSHeal:AddSetAttributes(set)
 	set.orbhealing = set.orbhealing or 0
 	set.orboverhealing = set.orboverhealing or 0
 	set.orbhealingabsorbed = set.orbhealingabsorbed or 0
-	set.orbhits = set.orbhits or 0
+	set.orbpickuphits = set.orbpickuphits or 0 			-- Orb Pickups
+	set.orbbursthits = set.orbbursthits or 0 			-- Orb Bursts
 end
 
 
+
+local function waste_tooltip(win, bar, name, tooltip)
+	local set = win:get_selected_set()
+	local player = Skada:get_player(set, {}, name)
+
+	tooltip:AddLine(SerpentOrbs.L["Orb Efficiency for"].." "..name)
+	if player then
+		print("waste_tooltip", player.orbburstcast)
+		local totalOrbs = player.orbburstcast + set.orbpickuphits
+		local wastedOrbs = player.orbburstcast - set.orbbursthits
+
+		tooltip:AddDoubleLine(SerpentOrbs.L["Total Orbs"], totalOrbs, 255,255,255,255,255,255)
+		tooltip:AddDoubleLine(SerpentOrbs.L["Pickups"], set.orbpickuphits, 255,255,255,255,255,255)
+		tooltip:AddDoubleLine(SerpentOrbs.L["Bursts"], player.orbburstcast, 255,255,255,255,255,255)
+		tooltip:AddDoubleLine(SerpentOrbs.L["Wasted"], ("%d (%.1f%%)"):format(wastedOrbs, wastedOrbs / totalOrbs * 100), 255,255,255,255,255,255)
+	end
+end
+
 -- Spell view of a player.
+function modGotSWaste:OnEnable()
+	modGotSWaste.metadata = {tooltip = waste_tooltip}
+
+	Skada:RegisterForCL(SpellCast, 'SPELL_CAST_SUCCESS', {src_is_interesting = true})
+
+	Skada:AddMode(self)
+end
+
+function modGotSWaste:OnDisable()
+	Skada:RemoveMode(self)
+end
+
 function modGotSWaste:Update(win, set)
 	local max = 0
 	local nr = 1
 
 	for i, player in ipairs(set.players) do
-		if player.orbburst > 0 then
+		if player.orbburstcast > 0 then
+			local totalOrbs = player.orbburstcast + set.orbpickuphits
+			local wastedOrbs = player.orbburstcast - set.orbbursthits
 
 			local d = win.dataset[nr] or {}
 			win.dataset[nr] = d
-			d.value = player.orbburst
+			d.value = wastedOrbs
 			d.label = player.name
 			d.class = player.class
 			d.id = player.id
-			d.valuetext = Skada:FormatValueText(
-								string.format("%d", player.orbburst), self.metadata.columns.Healing,
-								string.format("%d", player.orbhealingspells["Gift of the Serpent (Burst)"].orbhits), self.metadata.columns.HPS,
-								string.format("%02.1f%%", player.orbhealingspells["Gift of the Serpent (Burst)"].orbhits / player.orbburst * 100), self.metadata.columns.Percent
-							)
-			if player.orbburst > max then
-				max = player.orbburst
+			d.valuetext = ("%d / %d (%.1f%%)"):format(totalOrbs, wastedOrbs, wastedOrbs / totalOrbs * 100)
+
+			if totalOrbs > max then
+				max = totalOrbs
 			end
 			nr = nr + 1
 		end
@@ -339,23 +336,19 @@ function modGotSWaste:Update(win, set)
 	win.metadata.maxvalue = max
 end
 
-function modGotSWaste:OnEnable()
-	Skada:AddMode(self)
+function modGotSWaste:GetSetSummary(set)
+	return set.orbburstcast
 end
 
-function modGotSWaste:OnDisable()
-	Skada:RemoveMode(self)
+function modGotSWaste:AddToTooltip(set, tooltip)
+ 	GameTooltip:AddDoubleLine(SerpentOrbs.L["Efficiency"], Skada:FormatNumber(set.orbhealing), 1,1,1)
 end
 
 function modGotSWaste:AddPlayerAttributes(player)
-	player.orbburst = player.orbburst or 0
+	player.orbburstcast = player.orbburstcast or 0
 end
 
 -- Called by Skada when a new set is created.
 function modGotSWaste:AddSetAttributes(set)
-	set.orbburst = set.orbburst or 0
-end
-
-function modGotSWaste:GetSetSummary(set)
-	return set.orbburst
+	set.orbburstcast = set.orbburstcast or 0
 end
