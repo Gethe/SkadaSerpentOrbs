@@ -1,45 +1,31 @@
-local locale, _, A = GetLocale(), ...
+local locale, NAME, A = GetLocale(), ...
 
-A.L = setmetatable({ }, { __index = function(_, key) return key end })
+local debug = false
+--@debug@
+debug = true
+--@end-debug@
 
-if locale == "frFR" then -- French
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+local L = LibStub("AceLocale-3.0"):NewLocale(NAME, locale, true, debug)
 
-elseif locale == "deDE" then -- German
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="enUS", format="lua_table", same-key-is-true=true, handle-subnamespaces="concat")@
 
-elseif locale == "itIT" then -- Italian
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="frFR", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "ptBR" then -- Brazilian Portuguese
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="deDE", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "esMX" then -- Latin American Spanish
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="itIT", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "esES" then -- Spanish
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="ptBR", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "ruRU" then -- Russian
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="esMX", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "koKR" then -- Korean
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="esES", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "zhCN" then -- Simplified Chinese
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="ruRU", format="lua_table", handle-subnamespaces="concat")@
 
-elseif locale == "zhTW" then -- Traditional Chinese
-	L["GotS Healing"] = "GotS Healing"
-	L["GotS Efficiency"] = "GotS Efficiency"
+--@localization(locale="koKR", format="lua_table", handle-subnamespaces="concat")@
 
-end
+--@localization(locale="zhCN", format="lua_table", handle-subnamespaces="concat")@
+
+--@localization(locale="zhTW", format="lua_table", handle-subnamespaces="concat")@
+
