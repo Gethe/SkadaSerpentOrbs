@@ -12,14 +12,14 @@ local function log_heal(set, heal)
     local player = Skada:get_player(set, heal.playerid, heal.playername)
     if player then
         if heal.spellid == 124041 then -- Orb Pickup
-            heal.spellname = L["GotS (Pickup)"]
+            heal.spellname = "GotS (Pickup)"
             if not set.orbpickuphits[heal.srcName] then
                 set.orbpickuphits[heal.srcName] = 0
             end
             set.orbpickuphits[heal.srcName] = set.orbpickuphits[heal.srcName] + 1
             set.orbpickuphits.total = set.orbpickuphits.total + 1
         elseif heal.spellid == 135920 then -- Orb Burst
-            heal.spellname = L["GotS (Burst)"]
+            heal.spellname = "GotS (Burst)"
             if not set.orbbursthits[heal.srcName] then
                 set.orbbursthits[heal.srcName] = 0
             end
@@ -222,7 +222,16 @@ function modGotSHeal:Update(win, set)
             d.label = player.name
             d.value = player.orbhealing
 
-            d.valuetext = ("%s / %d"):format(Skada:FormatNumber(player.orbhealing), player.orbpickuphits + player.orbbursthits)
+            local burstHits = 0
+            if player.orbhealingspells["GotS (Burst)"] then
+                burstHits = player.orbhealingspells["GotS (Burst)"].orbhits
+            end
+            local pickHits = 0
+            if player.orbhealingspells["GotS (Pickup)"] then
+                pickHits = player.orbhealingspells["GotS (Pickup)"].orbhits
+            end
+
+            d.valuetext = ("%s / %d"):format(Skada:FormatNumber(player.orbhealing), burstHits + pickHits)
             d.class = player.class
 
             if player.orbhealing > max then
@@ -290,7 +299,7 @@ local function waste_tooltip(win, id, name, tooltip)
         local totalOrbs = player.orbburstcast + set.orbpickuphits[player.name]
         local usedOrbs = set.orbbursthits[player.name] + set.orbpickuphits[player.name]
         local wastedOrbs = player.orbburstcast - set.orbbursthits[player.name]
-        
+
         tooltip:AddDoubleLine(L["Total Orbs:"], totalOrbs, 255,255,255,255,255,255)
         tooltip:AddDoubleLine(L["Picked Up:"], set.orbpickuphits[player.name], 255,255,255,255,255,255)
         tooltip:AddDoubleLine(L["Expired:"], player.orbburstcast, 255,255,255,255,255,255)
