@@ -13,18 +13,18 @@ local function log_heal(set, heal)
     if player then
         if heal.spellid == 124041 then -- Orb Pickup
             heal.spellname = "GotS (Pickup)"
-            if not set.orbpickuphits[heal.srcName] then
-                set.orbpickuphits[heal.srcName] = 0
-            end
             set.orbpickuphits[heal.srcName] = set.orbpickuphits[heal.srcName] + 1
             set.orbpickuphits.total = set.orbpickuphits.total + 1
         elseif heal.spellid == 135920 then -- Orb Burst
             heal.spellname = "GotS (Burst)"
-            if not set.orbbursthits[heal.srcName] then
-                set.orbbursthits[heal.srcName] = 0
-            end
             set.orbbursthits[heal.srcName] = set.orbbursthits[heal.srcName] + 1
             set.orbbursthits.total = set.orbbursthits.total + 1
+        end
+        if not set.orbbursthits[heal.srcName] then
+            set.orbbursthits[heal.srcName] = 0
+        end
+        if not set.orbpickuphits[heal.srcName] then
+            set.orbpickuphits[heal.srcName] = 0
         end
         -- Subtract overhealing
         local amount = math.max(0, heal.orbamount - heal.orboverhealing)
@@ -130,7 +130,6 @@ local function SpellCast(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGU
     -- Warlords: GotS summon spellId = 119031
 
     if (spellId == 124041) or (spellId == 135920) then  -- Orb Pickup or Burst
-        print("spellId", spellId, "; srcName", srcName, "; dstName", dstName)
         cast.dstName = dstName
         cast.playerid = srcGUID
         cast.playername = srcName
