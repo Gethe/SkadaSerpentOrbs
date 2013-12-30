@@ -1,6 +1,6 @@
 ## Interface: 50400
 ## Title: Skada |r[|caaedc99fSerpentOrbs|r]
-## Notes: Tracks healing and wasted heals from Gift of the Serpent healing orbs Skada.
+## Notes: Tracks healing and wasted heals from Gift of the Serpent healing orbs.
 ## Author: Gethe88
 ## Version: @project-version@
 ## Dependencies: Skada

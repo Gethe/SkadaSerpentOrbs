@@ -12,13 +12,19 @@ local function log_heal(set, heal)
     local player = Skada:get_player(set, heal.playerid, heal.playername)
     if player then
         if heal.spellid == 124041 then -- Orb Pickup
-            heal.spellname = "GotS (Pickup)"
-            player.orbpickuphits = player.orbpickuphits + 1
-            set.orbpickuphits = set.orbpickuphits + 1
+            heal.spellname = L["GotS (Pickup)"]
+            if not set.orbpickuphits[heal.srcName] then
+                set.orbpickuphits[heal.srcName] = 0
+            end
+            set.orbpickuphits[heal.srcName] = set.orbpickuphits[heal.srcName] + 1
+            set.orbpickuphits.total = set.orbpickuphits.total + 1
         elseif heal.spellid == 135920 then -- Orb Burst
-            heal.spellname = "GotS (Burst)"
-            player.orbbursthits = player.orbbursthits + 1
-            set.orbbursthits = set.orbbursthits + 1
+            heal.spellname = L["GotS (Burst)"]
+            if not set.orbbursthits[heal.srcName] then
+                set.orbbursthits[heal.srcName] = 0
+            end
+            set.orbbursthits[heal.srcName] = set.orbbursthits[heal.srcName] + 1
+            set.orbbursthits.total = set.orbbursthits.total + 1
         end
         -- Subtract overhealing
         local amount = math.max(0, heal.orbamount - heal.orboverhealing)
@@ -151,13 +157,13 @@ local function spell_tooltip(win, id, label, tooltip)
             end
             tooltip:AddDoubleLine(L["Average hit:"], Skada:FormatNumber(spell.orbhealing / spell.orbhits), 255,255,255,255,255,255)
             if spell.orbhits then
-                tooltip:AddDoubleLine(L["Critical"]..":", ("%02.1f%%"):format(spell.orbcritical / spell.orbhits * 100), 255,255,255,255,255,255)
+                tooltip:AddDoubleLine(L["Critical:"], ("%02.1f%%"):format(spell.orbcritical / spell.orbhits * 100), 255,255,255,255,255,255)
             end
             if spell.orbhits then
-                tooltip:AddDoubleLine(L["Overhealing"]..":", ("%02.1f%%"):format(spell.orboverhealing / (spell.orboverhealing + spell.orbhealing) * 100), 255,255,255,255,255,255)
+                tooltip:AddDoubleLine(L["Overhealing:"], ("%02.1f%%"):format(spell.orboverhealing / (spell.orboverhealing + spell.orbhealing) * 100), 255,255,255,255,255,255)
             end
             if spell.orbhits and spell.orbabsorbed then
-                tooltip:AddDoubleLine(L["Absorbed"]..":", ("%02.1f%%"):format(spell.orbabsorbed / (spell.orboverhealing + spell.orbhealing) * 100), 255,255,255,255,255,255)
+                tooltip:AddDoubleLine(L["Absorbed:"], ("%02.1f%%"):format(spell.orbabsorbed / (spell.orboverhealing + spell.orbhealing) * 100), 255,255,255,255,255,255)
             end
         end
     end
@@ -244,11 +250,11 @@ function modGotSHeal:OnDisable()
 end
 
 function modGotSHeal:AddToTooltip(set, tooltip)
-    GameTooltip:AddDoubleLine(L["Healing"], Skada:FormatNumber(set.orbhealing), 1,1,1)
+    GameTooltip:AddDoubleLine(L["GotS Healing"], Skada:FormatNumber(set.orbhealing), 1,1,1)
 end
 
 function modGotSHeal:GetSetSummary(set)
-    return ("%s / %d"):format(Skada:FormatNumber(set.orbhealing), set.orbpickuphits + set.orbbursthits)
+    return ("%s"):format(Skada:FormatNumber(set.orbhealing))
 end
 
 -- Called by Skada when a new player is added to a set.
@@ -258,8 +264,6 @@ function modGotSHeal:AddPlayerAttributes(player)
     player.orbhealingspells = player.orbhealingspells or {}     -- Healing spells
     player.orboverhealing = player.orboverhealing or 0          -- Overheal total
     player.orbhealingabsorbed = player.orbhealingabsorbed or 0  -- Absorbed total
-    player.orbpickuphits = player.orbpickuphits or 0            -- Orb Pickups
-    player.orbbursthits = player.orbbursthits or 0              -- Orb Bursts
 
     -- update any pre-existing orbhealingspells for new properties
     local _, orbheal, orbhealed
@@ -273,8 +277,6 @@ function modGotSHeal:AddSetAttributes(set)
     set.orbhealing = set.orbhealing or 0
     set.orboverhealing = set.orboverhealing or 0
     set.orbhealingabsorbed = set.orbhealingabsorbed or 0
-    set.orbpickuphits = set.orbpickuphits or 0          -- Orb Pickups
-    set.orbbursthits = set.orbbursthits or 0            -- Orb Bursts
 end
 
 
@@ -285,15 +287,15 @@ local function waste_tooltip(win, id, name, tooltip)
 
     tooltip:AddLine(L["Orb Efficiency for"].." "..name)
     if player then
-        local totalOrbs = player.orbburstcast + set.orbpickuphits
-        local usedOrbs = set.orbbursthits + set.orbpickuphits
-        local wastedOrbs = player.orbburstcast - set.orbbursthits
-
-        tooltip:AddDoubleLine(L["Total Orbs"], totalOrbs, 255,255,255,255,255,255)
-        tooltip:AddDoubleLine(L["Picked Up"], set.orbpickuphits, 255,255,255,255,255,255)
-        tooltip:AddDoubleLine(L["Expired"], player.orbburstcast, 255,255,255,255,255,255)
-        tooltip:AddDoubleLine(L["Used"], ("%d (%.1f%%)"):format(usedOrbs, usedOrbs / totalOrbs * 100), 255,255,255,255,255,255)
-        tooltip:AddDoubleLine(L["Wasted"], ("%d (%.1f%%)"):format(wastedOrbs, wastedOrbs / totalOrbs * 100), 255,255,255,255,255,255)
+        local totalOrbs = player.orbburstcast + set.orbpickuphits[player.name]
+        local usedOrbs = set.orbbursthits[player.name] + set.orbpickuphits[player.name]
+        local wastedOrbs = player.orbburstcast - set.orbbursthits[player.name]
+        
+        tooltip:AddDoubleLine(L["Total Orbs:"], totalOrbs, 255,255,255,255,255,255)
+        tooltip:AddDoubleLine(L["Picked Up:"], set.orbpickuphits[player.name], 255,255,255,255,255,255)
+        tooltip:AddDoubleLine(L["Expired:"], player.orbburstcast, 255,255,255,255,255,255)
+        tooltip:AddDoubleLine(L["Used:"], ("%d (%.1f%%)"):format(usedOrbs, usedOrbs / totalOrbs * 100), 255,255,255,255,255,255)
+        tooltip:AddDoubleLine(L["Wasted:"], ("%d (%.1f%%)"):format(wastedOrbs, wastedOrbs / totalOrbs * 100), 255,255,255,255,255,255)
     end
 end
 
@@ -316,9 +318,8 @@ function modGotSWaste:Update(win, set)
 
     for i, player in ipairs(set.players) do
         if player.orbburstcast > 0 then
-            local totalOrbs = player.orbburstcast + set.orbpickuphits
-            local usedOrbs = set.orbbursthits + set.orbpickuphits
-            local wastedOrbs = player.orbburstcast - set.orbbursthits
+            local totalOrbs = player.orbburstcast + set.orbpickuphits[player.name]
+            local usedOrbs = set.orbbursthits[player.name] + set.orbpickuphits[player.name]
 
             local d = win.dataset[nr] or {}
             win.dataset[nr] = d
@@ -326,7 +327,7 @@ function modGotSWaste:Update(win, set)
             d.label = player.name
             d.class = player.class
             d.id = player.id
-            d.valuetext = ("%d / %d (%.1f%%)"):format(totalOrbs, wastedOrbs, usedOrbs / totalOrbs * 100)
+            d.valuetext = ("%d / %d (%.1f%%)"):format(totalOrbs, usedOrbs, usedOrbs / totalOrbs * 100)
 
             if totalOrbs > max then
                 max = totalOrbs
@@ -339,14 +340,17 @@ function modGotSWaste:Update(win, set)
 end
 
 function modGotSWaste:GetSetSummary(set)
-    local totalOrbs = set.orbburstcast + set.orbpickuphits
-    local usedOrbs = set.orbbursthits + set.orbpickuphits
+    local totalOrbs = set.orbburstcast + set.orbpickuphits.total
+    local usedOrbs = set.orbbursthits.total + set.orbpickuphits.total
 
-    return ("%d (%.1f%%)"):format(usedOrbs, usedOrbs / totalOrbs * 100)
+    return ("%.1f%%"):format(usedOrbs / totalOrbs * 100)
 end
 
 function modGotSWaste:AddToTooltip(set, tooltip)
-    GameTooltip:AddDoubleLine(L["Efficiency"], Skada:FormatNumber(set.orbhealing), 1,1,1)
+    local totalOrbs = set.orbburstcast + set.orbpickuphits.total
+    local usedOrbs = set.orbbursthits.total + set.orbpickuphits.total
+
+    GameTooltip:AddDoubleLine(L["GotS Efficiency"], ("%.1f%%"):format(usedOrbs / totalOrbs * 100), 1,1,1)
 end
 
 function modGotSWaste:AddPlayerAttributes(player)
@@ -356,4 +360,6 @@ end
 -- Called by Skada when a new set is created.
 function modGotSWaste:AddSetAttributes(set)
     set.orbburstcast = set.orbburstcast or 0
+    set.orbpickuphits = set.orbpickuphits or {total = 0}
+    set.orbbursthits = set.orbbursthits or {total = 0}           -- Orb Bursts
 end
