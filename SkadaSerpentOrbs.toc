@@ -5,5 +5,16 @@
 ## Version: @project-version@
 ## Dependencies: Skada
 
-Localization.lua
+locale\enUS.lua
+locale\deDE.lua
+locale\esES.lua
+locale\esMX.lua
+locale\frFR.lua
+locale\itIT.lua
+locale\koKR.lua
+locale\ptBR.lua
+locale\ruRU.lua
+locale\zhCN.lua
+locale\zhTW.lua
+
 SerpentOrbs.lua
