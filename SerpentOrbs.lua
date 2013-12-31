@@ -1,5 +1,4 @@
-local NAME, SerpentOrbs = ...
-local L = LibStub("AceLocale-3.0"):GetLocale(NAME, false)
+local L = LibStub("AceLocale-3.0"):GetLocale(SkadaSerpentOrbs, false)
 
 local Skada = Skada
 
@@ -17,7 +16,7 @@ local function log_heal(set, heal)
         if not set.orbpickuphits[heal.srcName] then
             set.orbpickuphits[heal.srcName] = 0
         end
-        
+
         if heal.spellid == 124041 then -- Orb Pickup
             heal.spellname = "GotS (Pickup)"
             set.orbpickuphits[heal.srcName] = set.orbpickuphits[heal.srcName] + 1
