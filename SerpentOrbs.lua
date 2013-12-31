@@ -11,6 +11,13 @@ local function log_heal(set, heal)
     -- Get the player from set.
     local player = Skada:get_player(set, heal.playerid, heal.playername)
     if player then
+        if not set.orbbursthits[heal.srcName] then
+            set.orbbursthits[heal.srcName] = 0
+        end
+        if not set.orbpickuphits[heal.srcName] then
+            set.orbpickuphits[heal.srcName] = 0
+        end
+        
         if heal.spellid == 124041 then -- Orb Pickup
             heal.spellname = "GotS (Pickup)"
             set.orbpickuphits[heal.srcName] = set.orbpickuphits[heal.srcName] + 1
@@ -19,12 +26,6 @@ local function log_heal(set, heal)
             heal.spellname = "GotS (Burst)"
             set.orbbursthits[heal.srcName] = set.orbbursthits[heal.srcName] + 1
             set.orbbursthits.total = set.orbbursthits.total + 1
-        end
-        if not set.orbbursthits[heal.srcName] then
-            set.orbbursthits[heal.srcName] = 0
-        end
-        if not set.orbpickuphits[heal.srcName] then
-            set.orbpickuphits[heal.srcName] = 0
         end
         -- Subtract overhealing
         local amount = math.max(0, heal.orbamount - heal.orboverhealing)
