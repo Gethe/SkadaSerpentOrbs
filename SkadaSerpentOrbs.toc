@@ -5,7 +5,7 @@
 ## Version: @project-version@
 ## Dependencies: Skada
 
-#locale\enUS.lua
+locale.lua
 #locale\deDE.lua
 #locale\esES.lua
 #locale\esMX.lua
