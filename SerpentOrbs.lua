@@ -19,11 +19,11 @@ local function log_heal(set, heal)
         end
 
         if heal.spellid == 124041 then -- Orb Pickup
-            heal.spellname = "GotS (Pickup)"
+            heal.spellname = L["GotS (Pickup)"]
             set.orbpickuphits[heal.srcName] = set.orbpickuphits[heal.srcName] + 1
             set.orbpickuphits.total = set.orbpickuphits.total + 1
         elseif heal.spellid == 135920 then -- Orb Burst
-            heal.spellname = "GotS (Burst)"
+            heal.spellname = L["GotS (Burst)"]
             set.orbbursthits[heal.srcName] = set.orbbursthits[heal.srcName] + 1
             set.orbbursthits.total = set.orbbursthits.total + 1
         end
@@ -223,12 +223,12 @@ function modGotSHeal:Update(win, set)
             d.value = player.orbhealing
 
             local burstHits = 0
-            if player.orbhealingspells["GotS (Burst)"] then
-                burstHits = player.orbhealingspells["GotS (Burst)"].orbhits
+            if player.orbhealingspells[L["GotS (Burst)"]] then
+                burstHits = player.orbhealingspells[L["GotS (Burst)"]].orbhits
             end
             local pickHits = 0
-            if player.orbhealingspells["GotS (Pickup)"] then
-                pickHits = player.orbhealingspells["GotS (Pickup)"].orbhits
+            if player.orbhealingspells[L["GotS (Pickup)"]] then
+                pickHits = player.orbhealingspells[L["GotS (Pickup)"]].orbhits
             end
 
             d.valuetext = ("%s / %d"):format(Skada:FormatNumber(player.orbhealing), burstHits + pickHits)
