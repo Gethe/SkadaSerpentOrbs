@@ -110,7 +110,7 @@ local function SpellHeal(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGU
     if (spellId == 124041) or (spellId == 135920) then  -- Orb Pickup or Burst
         heal.playername = dstName
         heal.playerid = dstGUID
-        heal.srcName = srcName
+        heal.srcName = string.split("-", srcName)
         heal.spellid = spellId
         heal.spellname = spellName
         heal.orbamount = samount
