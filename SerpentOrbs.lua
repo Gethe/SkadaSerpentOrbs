@@ -93,6 +93,10 @@ local function log_cast(set, cast)
     local player = Skada:get_player(set, cast.playerid, cast.playername)
     if player then
         -- Add to player orb casts.
+        if cast.spellid == 119031 then -- Orb Summon
+            player.orbsummon = player.orbsummon + 1
+            set.orbsummon = set.orbsummon + 1
+        end
         if cast.spellid == 135920 then -- Orb Burst
             player.orbburstcast = player.orbburstcast + 1
             set.orbburstcast = set.orbburstcast + 1
@@ -128,9 +132,7 @@ local function SpellCast(timestamp, eventtype, srcGUID, srcName, srcFlags, dstGU
     -- Healing
     local spellId, spellName, spellSchool = ...
 
-    -- Warlords: GotS summon spellId = 119031
-
-    if (spellId == 124041) or (spellId == 135920) then  -- Orb Pickup or Burst
+    if (spellId == 119031) or (spellId == 135920) then  -- Orb Summon/Pickup/Burst
         cast.dstName = dstName
         cast.playerid = srcGUID
         cast.playername = srcName
@@ -295,10 +297,10 @@ local function waste_tooltip(win, id, name, tooltip)
     local player = Skada:find_player(set, id)
 
     tooltip:AddLine(L["Orb Efficiency for"].." "..name)
-    if player then
-        local totalOrbs = player.orbburstcast + set.orbpickuphits[player.name]
-        local usedOrbs = set.orbbursthits[player.name] + set.orbpickuphits[player.name]
-        local wastedOrbs = player.orbburstcast - set.orbbursthits[player.name]
+    if player and (player.orbburstcast > 0) then
+        local totalOrbs = player.orbsummon
+        local usedOrbs = (set.orbbursthits[player.name] or 0) + (set.orbpickuphits[player.name] or 0)
+        local wastedOrbs = player.orbburstcast - (set.orbbursthits[player.name] or 0)
 
         tooltip:AddDoubleLine(L["Total Orbs:"], totalOrbs, 255,255,255,255,255,255)
         tooltip:AddDoubleLine(L["Picked Up:"], set.orbpickuphits[player.name], 255,255,255,255,255,255)
@@ -326,33 +328,38 @@ function modGotSWaste:Update(win, set)
     local nr = 1
 
     for i, player in ipairs(set.players) do
-        if player.orbburstcast > 0 then
-            local totalOrbs = player.orbburstcast + set.orbpickuphits[player.name]
-            local usedOrbs = set.orbbursthits[player.name] + set.orbpickuphits[player.name]
+        local totalOrbs = 0
+        local d = win.dataset[nr] or {}
+        win.dataset[nr] = d
+        d.label = player.name
+        d.class = player.class
+        d.id = player.id
+        if (player.orbhealing > 0) then
+            totalOrbs = player.orbsummon
+            local usedOrbs = (set.orbbursthits[player.name] or 0) + (set.orbpickuphits[player.name] or 0)
 
-            local d = win.dataset[nr] or {}
-            win.dataset[nr] = d
             d.value = usedOrbs
-            d.label = player.name
-            d.class = player.class
-            d.id = player.id
             d.valuetext = ("%d / %d (%.1f%%)"):format(totalOrbs, usedOrbs, usedOrbs / totalOrbs * 100)
+        elseif (player.orbsummon >= 0) then
+            totalOrbs = player.orbsummon
 
-            if totalOrbs > max then
-                max = totalOrbs
-            end
-            nr = nr + 1
+            d.value = totalOrbs
+            d.valuetext = ("%d"):format(totalOrbs)
         end
+        if totalOrbs > max then
+            max = totalOrbs
+        end
+        nr = nr + 1
     end
 
     win.metadata.maxvalue = max
 end
 
 function modGotSWaste:GetSetSummary(set)
-    local totalOrbs = set.orbburstcast + set.orbpickuphits.total
+    local totalOrbs = set.orbsummon
     local usedOrbs = set.orbbursthits.total + set.orbpickuphits.total
 
-    return ("%.1f%%"):format(usedOrbs / totalOrbs * 100)
+    return ("%.1f%%"):format((totalOrbs <= 0) and 0 or (usedOrbs / totalOrbs * 100))
 end
 
 function modGotSWaste:AddToTooltip(set, tooltip)
@@ -363,11 +370,13 @@ function modGotSWaste:AddToTooltip(set, tooltip)
 end
 
 function modGotSWaste:AddPlayerAttributes(player)
+    player.orbsummon = player.orbsummon or 0
     player.orbburstcast = player.orbburstcast or 0
 end
 
 -- Called by Skada when a new set is created.
 function modGotSWaste:AddSetAttributes(set)
+    set.orbsummon = set.orbsummon or 0
     set.orbburstcast = set.orbburstcast or 0
     set.orbpickuphits = set.orbpickuphits or {total = 0}
     set.orbbursthits = set.orbbursthits or {total = 0}           -- Orb Bursts
